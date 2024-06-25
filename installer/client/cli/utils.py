@@ -53,12 +53,14 @@ class Standalone:
             if not self.model:
                 self.model = 'gpt-4-turbo-preview'
         self.claude = False
-        sorted_gpt_models, ollamaList, claudeList = self.fetch_available_models()
+        sorted_gpt_models, ollamaList, claudeList, googleList = self.fetch_available_models()
         self.sorted_gpt_models = sorted_gpt_models
         self.ollamaList = ollamaList
         self.claudeList = claudeList
+        self.googleList = googleList
         self.local = self.model in ollamaList
         self.claude = self.model in claudeList
+        self.google = self.model in googleList
 
     async def localChat(self, messages, host=''):
         from ollama import AsyncClient
@@ -144,6 +146,47 @@ class Standalone:
             session.save_to_session(
                 system, user, message.content[0].text, self.args.session)
 
+    async def googleChat(self, system, user, copy=False):
+        import google.generativeai as genai
+        self.googleApiKey = os.environ["GOOGLE_API_KEY"]
+        genai.configure(api_key=self.googleApiKey)
+        model = genai.GenerativeModel(
+            model_name=self.model, system_instruction=system)
+        response = model.generate_content(user)
+        print(response.text)
+        if copy:
+            pyperclip.copy(response.text)
+        if self.args.output:
+            with open(self.args.output, "w") as f:
+                f.write(response.text)
+        if self.args.session:
+            from .helper import Session
+            session = Session()
+            session.save_to_session(
+                system, user, response.text, self.args.session)
+
+    async def googleStream(self, system, user, copy=False):
+        import google.generativeai as genai
+        buffer = ""
+        self.googleApiKey = os.environ["GOOGLE_API_KEY"]
+        genai.configure(api_key=self.googleApiKey)
+        model = genai.GenerativeModel(
+            model_name=self.model, system_instruction=system)
+        response = model.generate_content(user, stream=True)
+        for chunk in response:
+            buffer += chunk.text
+            print(chunk.text)
+        if copy:
+            pyperclip.copy(buffer)
+        if self.args.output:
+            with open(self.args.output, "w") as f:
+                f.write(buffer)
+        if self.args.session:
+            from .helper import Session
+            session = Session()
+            session.save_to_session(
+                system, user, buffer, self.args.session)
+
     def streamMessage(self, input_data: str, context="", host=''):
         """        Stream a message and handle exceptions.
 
@@ -172,7 +215,7 @@ class Standalone:
         else:
             user = input_data
         user_message = {"role": "user", "content": f"{input_data}"}
-        wisdom_File = os.path.join(current_directory, wisdomFilePath)
+        wisdom_File = wisdomFilePath
         buffer = ""
         system = ""
         if self.pattern:
@@ -209,6 +252,10 @@ class Standalone:
             elif self.claude:
                 from anthropic import AsyncAnthropic
                 asyncio.run(self.claudeStream(system, user_message))
+            elif self.google:
+                if system == "":
+                    system = " "
+                asyncio.run(self.googleStream(system, user_message['content']))
             else:
                 stream = self.client.chat.completions.create(
                     model=self.model,
@@ -315,6 +362,10 @@ class Standalone:
                     asyncio.run(self.localChat(messages))
             elif self.claude:
                 asyncio.run(self.claudeChat(system, user_message))
+            elif self.google:
+                if system == "":
+                    system = " "
+                asyncio.run(self.googleChat(system, user_message['content']))
             else:
                 response = self.client.chat.completions.create(
                     model=self.model,
@@ -354,8 +405,9 @@ class Standalone:
     def fetch_available_models(self):
         gptlist = []
         fullOllamaList = []
+        googleList = []
         if "CLAUDE_API_KEY" in os.environ:
-            claudeList = ['claude-3-opus-20240229', 'claude-3-sonnet-20240229',
+            claudeList = ['claude-3-5-sonnet-20240620','claude-3-opus-20240229', 'claude-3-sonnet-20240229',
                           'claude-3-haiku-20240307', 'claude-2.1']
         else:
             claudeList = []
@@ -389,8 +441,16 @@ class Standalone:
                 fullOllamaList.append(model['name'])
         except:
             fullOllamaList = []
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
+            for m in genai.list_models():
+                if 'generateContent' in m.supported_generation_methods:
+                    googleList.append(m.name)
+        except:
+            googleList = []
 
-        return gptlist, fullOllamaList, claudeList
+        return gptlist, fullOllamaList, claudeList, googleList
 
     def get_cli_input(self):
         """ aided by ChatGPT; uses platform library
@@ -523,6 +583,7 @@ class Setup:
         self.env_file = os.path.join(self.config_directory, ".env")
         self.gptlist = []
         self.fullOllamaList = []
+        self.googleList = []
         self.claudeList = ['claude-3-opus-20240229']
         load_dotenv(self.env_file)
         try:
@@ -530,6 +591,21 @@ class Setup:
             self.openaiapi_key = openaiapikey
         except:
             pass
+
+    def __ensure_env_file_created(self):
+        """        Ensure that the environment file is created.
+
+        Returns:
+            None
+
+        Raises:
+            OSError: If the environment file cannot be created.
+        """
+        print("Creating empty environment file...")
+        if not os.path.exists(self.env_file):
+            with open(self.env_file, "w") as f:
+                f.write("#No API key set\n")
+        print("Environment file created.")
 
     def update_shconfigs(self):
         bootstrap_file = os.path.join(
@@ -597,6 +673,31 @@ class Setup:
             with open(self.env_file, "w") as f:
                 f.write(f"CLAUDE_API_KEY={claude_key}\n")
 
+    def google_key(self, google_key):
+        """        Set the Google API key in the environment file.
+
+        Args:
+            google_key (str): The API key to be set.
+
+        Returns:
+            None
+
+        Raises:
+            OSError: If the environment file does not exist or cannot be accessed.
+        """
+        google_key = google_key.strip()
+        if os.path.exists(self.env_file) and google_key:
+            with open(self.env_file, "r") as f:
+                lines = f.readlines()
+            with open(self.env_file, "w") as f:
+                for line in lines:
+                    if "GOOGLE_API_KEY" not in line:
+                        f.write(line)
+                f.write(f"GOOGLE_API_KEY={google_key}\n")
+        elif google_key:
+            with open(self.env_file, "w") as f:
+                f.write(f"GOOGLE_API_KEY={google_key}\n")
+
     def youtube_key(self, youtube_key):
         """        Set the YouTube API key in the environment file.
 
@@ -631,8 +732,8 @@ class Setup:
         model = model.strip()
         env = os.path.expanduser("~/.config/fabric/.env")
         standalone = Standalone(args=[], pattern="")
-        gpt, ollama, claude = standalone.fetch_available_models()
-        allmodels = gpt + ollama + claude
+        gpt, ollama, claude, google = standalone.fetch_available_models()
+        allmodels = gpt + ollama + claude + google
         if model not in allmodels:
             print(
                 f"Error: {model} is not a valid model. Please run fabric --listmodels to see the available models.")
@@ -692,11 +793,15 @@ class Setup:
         print("Please enter your claude API key. If you do not have one, or if you have already entered it, press enter.\n")
         claudekey = input()
         self.claude_key(claudekey)
+        print("Please enter your Google API key. If you do not have one, or if you have already entered it, press enter.\n")
+        googlekey = input()
+        self.google_key(googlekey)
         print("Please enter your YouTube API key. If you do not have one, or if you have already entered it, press enter.\n")
         youtubekey = input()
         self.youtube_key(youtubekey)
         self.patterns()
         self.update_shconfigs()
+        self.__ensure_env_file_created()
 
 
 class Transcribe:

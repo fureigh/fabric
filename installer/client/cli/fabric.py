@@ -70,7 +70,7 @@ def main():
         "--listmodels", help="List all available models", action="store_true"
     )
     parser.add_argument('--remoteOllamaServer',
-                        help='The URL of the remote ollamaserver to use. ONLY USE THIS if you are using a local ollama server in an non-deault location or port')
+                        help='The URL of the remote ollamaserver to use. ONLY USE THIS if you are using a local ollama server in an non-default location or port')
     parser.add_argument('--context', '-c',
                         help="Use Context file (context.md) to add context to your pattern", action="store_true")
 
@@ -158,7 +158,7 @@ def main():
             print("No patterns found")
             sys.exit()
     if args.listmodels:
-        gptmodels, localmodels, claudemodels = standalone.fetch_available_models()
+        gptmodels, localmodels, claudemodels, googlemodels = standalone.fetch_available_models()
         print("GPT Models:")
         for model in gptmodels:
             print(model)
@@ -167,6 +167,9 @@ def main():
             print(model)
         print("\nClaude Models:")
         for model in claudemodels:
+            print(model)
+        print("\nGoogle Models:")
+        for model in googlemodels:
             print(model)
         sys.exit()
     if args.text is not None:
