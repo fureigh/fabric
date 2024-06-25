@@ -221,35 +221,35 @@ usage: fabric [-h] [--text TEXT] [--copy] [--agents] [--output [OUTPUT]] [--sess
 An open-source framework for augmenting humans using AI.
 
 options:
-  -h, --help            show this help message and exit
-  --text TEXT, -t TEXT  Text to extract summary from
-  --copy, -C            Copy the response to the clipboard
-  --agents, -a          Use praisonAI to create an AI agent and then use it. ex: 'write me a movie script'
+  -h, --help            Show this help message and exit.
+  --text TEXT, -t TEXT  Text to extract summary from.
+  --copy, -C            Copy the response to the clipboard.
+  --agents, -a          Use PraisonAI to create an AI agent and then use it. Ex: 'write me a movie script'
   --output [OUTPUT], -o [OUTPUT]
-                        Save the response to a file
+                        Save the response to a file.
   --session [SESSION], -S [SESSION]
-                        Continue your previous conversation. Default is your previous conversation
-  --gui                 Use the GUI (Node and npm need to be installed)
+                        Continue your previous conversation. Default is your previous conversation.
+  --gui                 Use the GUI. NOTE: Node and npm need to be installed.
   --stream, -s          Use this option if you want to see the results in realtime. NOTE: You will not be able to pipe the output into another command.
-  --list, -l            List available patterns
-  --temp TEMP           sets the temperature for the model. Default is 0
-  --top_p TOP_P         set the top_p for the model. Default is 1
+  --list, -l            List available patterns.
+  --temp TEMP           Set the temperature for the model. Default is 0.
+  --top_p TOP_P         Set the top_p for the model. Default is 1.
   --frequency_penalty FREQUENCY_PENALTY
-                        sets the frequency penalty for the model. Default is 0.1
+                        Set the frequency penalty for the model. Default is 0.1.
   --presence_penalty PRESENCE_PENALTY
-                        sets the presence penalty for the model. Default is 0.1
-  --update, -u          Update patterns. NOTE: This will revert the default model to gpt4-turbo. please run --changeDefaultModel to once again set the default model
+                        Set the presence penalty for the model. Default is 0.1.
+  --update, -u          Update patterns. NOTE: This will revert the default model to gpt4-turbo. Please run --changeDefaultModel to once again set the default model.
   --pattern PATTERN, -p PATTERN
-                        The pattern (prompt) to use
-  --setup               Set up your fabric instance
+                        The pattern (prompt) to use.
+  --setup               Set up your fabric instance.
   --changeDefaultModel CHANGEDEFAULTMODEL
                         Change the default model. For a list of available models, use the --listmodels flag.
   --model MODEL, -m MODEL
-                        Select the model to use
-  --listmodels          List all available models
+                        Select the model to use.
+  --listmodels          List all available models.
   --remoteOllamaServer REMOTEOLLAMASERVER
-                        The URL of the remote ollamaserver to use. ONLY USE THIS if you are using a local ollama server in a non-default location or port
-  --context, -c         Use Context file (context.md) to add context to your pattern
+                        The URL of the remote ollamaserver to use. ONLY USE THIS if you are using a local ollama server in a non-default location or port.
+  --context, -c         Use Context file (context.md) to add context to your pattern.
 ```
 
 #### Example commands
